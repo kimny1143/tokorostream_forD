@@ -51,6 +51,8 @@ coverage.xml
 .pytest_cache/
 cover/
 _bak/
+temp_dir/
+__pycache__/
 
 # Translations
 *.mo
