@@ -2,51 +2,43 @@ import streamlit as st
 import audio_pr_stream as ap
 import os
 import shutil
+import dropbox
+
+def cleanup_directory(directory):
+    try:
+        shutil.rmtree(directory)
+        st.write(f"Deleted directory: {directory}")
+    except Exception as e:
+        st.write(f"Failed to delete directory {directory}: {e}")
 
 def ensure_directory_exists(directory):
-    try:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-            print(f"Created directory: {directory}")  # 確認用の出力
-        else:
-            print(f"Directory already exists: {directory}")  # 既に存在する場合の出力
-    except Exception as e:
-        print(f"Failed to create directory {directory}: {e}")  # エラー発生時の出力
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        st.write(f"Created directory: {directory}")
+    else:
+        st.write(f"Directory already exists: {directory}")
 
-
-def rename_and_move_files(source_dir, target_base_dir):
-    valid_extensions = ['.wav', '.mp3', '.pdf']
-    files = [f for f in os.listdir(source_dir) if os.path.isfile(os.path.join(source_dir, f)) and any(f.endswith(ext) for ext in valid_extensions)]
-    
-    for file_name in files:
-        base_name, ext = os.path.splitext(file_name)
-        new_base_name = base_name # ファイル名の変更がない場合は元のファイル名を使用
-        if base_name.count('X') < 2 and base_name.startswith('0'):
-            # '0'で始まるが'X'が1つ以下のファイル名を改名
-            new_base_name = base_name.lstrip('0') + 'X'
-            new_file_name = new_base_name + ext
-        elif base_name.count('X') == 1:
-            # 既に適切な形式のファイル名はそのまま使用
-            new_file_name = file_name
-        else:
-            # 命名規則に合わないファイルやXが2回以上あるファイルはスキップ
-            continue
-        
-        song_number = ''.join([char for char in new_base_name if char.isdigit() or char == 'X'])
-        target_dir = os.path.join(target_base_dir, song_number)
-        if not os.path.exists(target_dir):
-            os.makedirs(target_dir)
-            print(f"Created directory: {target_dir}")
-
-        shutil.move(os.path.join(source_dir, file_name), os.path.join(target_dir, new_file_name))
-        print(f"Moved and renamed {file_name} to {new_file_name} in {target_dir}")
+def download_from_dropbox(link):
+    dbx = dropbox.Dropbox(st.secrets["DB_ACCESS_TOKEN"])
+    path = link.replace('https://www.dropbox.com', '').replace('?dl=0', '')
+    _, f = dbx.files_download(path)
+    file_path = os.path.join('/tmp', os.path.basename(path))
+    with open(file_path, 'wb') as out:
+        out.write(f.content)
+    return file_path
 
 def main():
     st.title("Tokoroten Audio and Document Processing")
 
-    input_dir = st.text_input("入力フォルダのパスを入力してください")
-    output_dir = st.text_input("出力フォルダのパスを入力してください")
-    target_base_dir = st.text_input("目的のベースフォルダのパスを入力してください")
+    input_link = st.text_input("Dropbox link to the input folder")
+    if input_link:
+        input_dir = download_from_dropbox(input_link)
+    else:
+        input_dir = None
+
+    # ユーザーのためにサーバー上に一時ディレクトリを作成
+    output_dir = '/tmp/output'
+    ensure_directory_exists(output_dir)
 
     sources = []
     if st.checkbox('vocals'):
@@ -58,20 +50,18 @@ def main():
     if st.checkbox('other'):
         sources.append('other')
 
-    if st.button("Run") and input_dir and output_dir and target_base_dir:
-        ensure_directory_exists(output_dir)
+    if st.button("Run") and input_dir:
         try:
             for file_name in os.listdir(input_dir):
                 if file_name.endswith(('.wav', '.mp3')):
                     file_path = os.path.join(input_dir, file_name)
                     audio_data, sample_rate = ap.load_audio_file(file_path)
                     ap.process_audio_file(file_path, sources, 'umxhq', 'cpu', output_dir)
-                
-            rename_and_move_files(input_dir, target_base_dir)
-            rename_and_move_files(output_dir, target_base_dir)
-            st.success("すべてのファイルの処理と移動が完了しました！")
+            st.success("All files processed and moved successfully!")
+            cleanup_directory('/tmp/output') # サーバー上の一時ディレクトリを削除
         except Exception as e:
-            st.error(f"処理中にエラーが発生しました: {e}")
+            st.error(f"Error during processing: {e}")
 
 if __name__ == '__main__':
     main()
+
