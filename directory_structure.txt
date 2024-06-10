@@ -1,0 +1,8 @@
+/requirements.txt
+/audio_pr_stream.py
+/app.log
+/tokoroui_st02_web.py
+/tokoroui_st02_local.py
+/__pycache__
+/__pycache__/audio_pr_stream.cpython-38.pyc
+/__pycache__/audio_pr_stream.cpython-311.pyc

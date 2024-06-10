@@ -1,0 +1,11 @@
+{
+    "name": "Tokoroten",
+    "dockerFile": "Dockerfile",
+    "appPort": 8503,
+    "extensions": [
+        "ms-python.python"
+    ],
+    "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash"
+    }
+}
