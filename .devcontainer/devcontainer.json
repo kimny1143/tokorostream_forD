@@ -1,7 +1,7 @@
 {
     "name": "Tokoroten",
-    "dockerFile": "Dockerfile",
-    "appPort": 8503,
+    "dockerFile": "../Dockerfile",
+    "forwardPorts": [8503],
     "extensions": [
         "ms-python.python"
     ],

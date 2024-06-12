@@ -1,12 +1,38 @@
-FROM python:3.9-slim
+# ベースイメージとしてPython 3.11を使用
+FROM python:3.11-slim
 
+# 作業ディレクトリを設定
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 必要なパッケージをインストール
+RUN apt-get update && apt-get install -y \
+    git \
+    gcc \
+    g++ \
+    libsndfile1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
+# vscodeユーザーを作成
+RUN useradd -ms /bin/bash vscode
+
+# 必要な依存関係をコピーし、インストール
+COPY requirements.txt requirements.txt
+
+# Cythonとnumpyを最初にインストール
+RUN pip install --no-cache-dir cython numpy
+
+# その他の依存関係をインストール
+RUN pip install --no-cache-dir -r requirements.txt --use-deprecated=legacy-resolver
+
+# アプリケーションのソースコードをコピー
 COPY . .
 
-EXPOSE 8503
+# ファイルの権限をvscodeユーザーに変更
+RUN chown -R vscode:vscode /app
 
-CMD ["streamlit", "run", "tokoroui_st02_web.py", "--server.port", "8503"]
+# vscodeユーザーに切り替え
+USER vscode
+
+# Streamlitを起動するエントリーポイントを設定
+CMD ["streamlit", "run", "tokoroui_st02_web.py", "--server.port=8503", "--server.address=0.0.0.0"]

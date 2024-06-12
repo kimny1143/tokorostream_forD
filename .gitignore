@@ -2,9 +2,20 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
+
+# devcontainer
+.devcontainer/
+*.json
+
+# Dockerfile
+Dockerfile
+
+# logfile
+*.log
 
 # Distribution / packaging
 .Python
