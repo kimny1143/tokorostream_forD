@@ -6,13 +6,14 @@ import zipfile
 import io
 import shutil
 
-def process_files(input_folder, output_dir, sources):
-    for file_name in os.listdir(input_folder):
-        file_path = os.path.join(input_folder, file_name)
-        if file_name.endswith(('.wav', '.mp3')):
+def process_files(uploaded_files, output_dir, sources):
+    for uploaded_file in uploaded_files:
+        file_path = os.path.join(output_dir, uploaded_file.name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
+        if uploaded_file.name.endswith(('.wav', '.mp3')):
             ap.process_audio_file(file_path, sources, 'umxhq', 'cpu', output_dir)
-        elif file_name.endswith('.pdf'):
-            shutil.copy(file_path, output_dir)
 
 def rename_and_move_files(source_dir, zip_file):
     valid_extensions = ['.wav', '.mp3', '.pdf']
@@ -48,31 +49,30 @@ def main():
     if st.checkbox('other'):
         sources.append('other')
 
-    input_folder = st.text_input("Enter the path of the input folder")
+    uploaded_files = st.file_uploader("Choose files to process", accept_multiple_files=True)
 
-    if input_folder:
-        if st.button("Process"):
-            with tempfile.TemporaryDirectory() as temp_dir:
-                output_dir = os.path.join(temp_dir, "output")
-                os.makedirs(output_dir, exist_ok=True)
+    if st.button("Process") and uploaded_files:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = os.path.join(temp_dir, "output")
+            os.makedirs(output_dir, exist_ok=True)
 
-                try:
-                    process_files(input_folder, output_dir, sources)
+            try:
+                process_files(uploaded_files, output_dir, sources)
 
-                    zip_buffer = io.BytesIO()
-                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                        rename_and_move_files(output_dir, zip_file)
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    rename_and_move_files(output_dir, zip_file)
 
-                    zip_buffer.seek(0)
-                    st.download_button(
-                        label="Download ZIP",
-                        data=zip_buffer,
-                        file_name="processed_files.zip",
-                        mime="application/zip"
-                    )
-                    st.success("Processing completed successfully!")
-                except Exception as e:
-                    st.error(f"An error occurred during processing: {e}")
+                zip_buffer.seek(0)
+                st.download_button(
+                    label="Download ZIP",
+                    data=zip_buffer,
+                    file_name="processed_files.zip",
+                    mime="application/zip"
+                )
+                st.success("Processing completed successfully!")
+            except Exception as e:
+                st.error(f"An error occurred during processing: {e}")
 
 if __name__ == '__main__':
     main()

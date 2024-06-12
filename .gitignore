@@ -9,7 +9,8 @@ __pycache__/
 
 # devcontainer
 .devcontainer/
-*.json
+devcontainer.json
+
 
 # Dockerfile
 Dockerfile
